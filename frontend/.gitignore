@@ -1,24 +1,36 @@
-# Logs
-logs
-*.log
+# Dependency directories
+node_modules/
+
+# Production builds (optional)
+dist/
+build/
+
+# Local environment files
+.env
+.env.* 
+
+# Log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
+# IDE/editor settings
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Optional: OS specific
+*.swp
+*.bak
+
+# Mac-specific
+.AppleDouble
+.LSOverride
