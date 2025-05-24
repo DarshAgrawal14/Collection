@@ -31,6 +31,22 @@ const upload = multer({
   }
 });
 
+// GET recent collection items (NEW ENDPOINT)
+router.get('/recent', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 3;
+    const items = await CollectionItem.find()
+      .sort({ createdAt: -1 }) // Sort by creation date, newest first
+      .limit(limit);
+    
+    console.log(`Fetching ${limit} recent items, found: ${items.length}`);
+    res.json(items);
+  } catch (err) {
+    console.error('Error fetching recent items:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // GET all collection items
 router.get('/', async (req, res) => {
   try {
@@ -73,6 +89,7 @@ router.post('/', upload.array('photos', config.MAX_FILES), async (req, res) => {
     });
     
     const savedItem = await newItem.save();
+    console.log('New item saved:', savedItem._id);
     res.status(201).json(savedItem);
   } catch (err) {
     // Clean up any uploaded files if there was an error
@@ -81,6 +98,7 @@ router.post('/', upload.array('photos', config.MAX_FILES), async (req, res) => {
         await fileSystem.deleteFile(file.filename);
       });
     }
+    console.error('Error creating item:', err);
     res.status(400).json({ message: err.message });
   }
 });
@@ -163,27 +181,23 @@ router.delete('/:id', async (req, res) => {
 });
 
 // GET items by filter criteria
-router.post('/search', async (req, res) => {
+router.post("/api/collection/search", async (req, res) => {
+  const filters = req.body;
+  const query = {};
+
+  for (const key in filters) {
+    if (filters[key] !== "" && filters[key] !== undefined) {
+      query[key] = filters[key];
+    }
+  }
+
   try {
-    const filters = req.body;
-    const query = {};
-    
-    // Build query based on filters
-    if (filters.type) query.type = filters.type;
-    if (filters.region) query.region = filters.region;
-    if (filters.after1947 !== undefined) query.after1947 = filters.after1947;
-    if (filters.year) query.year = { $regex: filters.year, $options: 'i' };
-    if (filters.denomination) query.denomination = { $regex: filters.denomination, $options: 'i' };
-    if (filters.metal) query.metal = { $regex: filters.metal, $options: 'i' };
-    if (filters.ruler) query.ruler = { $regex: filters.ruler, $options: 'i' };
-    if (filters.rulerType) query.rulerType = filters.rulerType;
-    if (filters.isCommemorative !== undefined) query.isCommemorative = filters.isCommemorative;
-    
-    const items = await CollectionItem.find(query).sort({ createdAt: -1 });
-    res.json(items);
+    const results = await Collection.find(query).limit(100);
+    res.json(results);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ error: "Search failed" });
   }
 });
+
 
 module.exports = router;

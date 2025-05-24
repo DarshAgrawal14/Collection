@@ -65,7 +65,7 @@ const upload = multer({
 
 // Set up static route for serving uploaded images
 app.use(`/${config.UPLOAD_DIR}`, express.static(uploadsDir));
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Import routes and middleware
 // const collectionRoutes = require('./routes/collection');
 const errorHandler = require('./middleware/errorHandler');
