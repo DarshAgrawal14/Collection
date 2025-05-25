@@ -16,6 +16,10 @@ export default function InventoryForm() {
   const [issuerSearch, setIssuerSearch] = useState("");
   const [showIssuerDropdown, setShowIssuerDropdown] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [galleryImages, setGalleryImages] = useState([]);
+
 
   const [formData, setFormData] = useState({
     currency: "",
@@ -176,6 +180,7 @@ const financeSecretaries = [
 );
 
 
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (files) {
@@ -194,6 +199,24 @@ const financeSecretaries = [
     setShowIssuerDropdown(false);
   };
 
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (!showImageGallery) return;
+      
+      if (e.key === 'Escape') {
+        closeGallery();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showImageGallery, galleryImages.length]);
+
   const removePhoto = (index) => {
     setFormData((prev) => ({
       ...prev,
@@ -203,6 +226,26 @@ const financeSecretaries = [
 
   const handleIssuerChange = (e) => {
     setIssuerSearch(e.target.value);
+  };
+
+  const openImageGallery = (images, startIndex = 0) => {
+  setGalleryImages(images);
+  setCurrentImageIndex(startIndex);
+  setShowImageGallery(true);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  const closeGallery = () => {
+    setShowImageGallery(false);
+    setGalleryImages([]);
+    setCurrentImageIndex(0);
   };
 
   // Section Header Component
@@ -667,6 +710,7 @@ const financeSecretaries = [
     });
 
     formDataToSend.append("metadata", JSON.stringify(itemData));
+    console.log(formDataToSend.get("metadata"));
 
     try {
       const res = await axios.post("http://localhost:5000/api/collection", formDataToSend, {
@@ -699,6 +743,9 @@ const financeSecretaries = [
           series: "",
           condition: "",
           notes: "",
+          number: "",
+          noteType: "",
+          quantity: "1",
           photo: [],
           thumbnailIndex: 0,
           purchaseValue: "",
@@ -706,7 +753,13 @@ const financeSecretaries = [
           acquisitionType: "bought",
           boughtFrom: "",
           exchangeRate: "",
+          canBeSold: false,        
+          isRare: false,
+          rareReason: "",
+          isMule: false,
+          muleDescription: ""
         });
+
       }
     } catch (err) {
       console.error("Error submitting to backend:", err);
@@ -1108,7 +1161,7 @@ const financeSecretaries = [
                   ${formData.canBeSold 
                     ? 'bg-green-100 text-green-800 border border-green-300' 
                     : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
-                  {formData.canBeSold ? "🛒 Sale List" : "📚 Collection"}
+                  {formData.canBeSold ?"📚 Collection": "🛒 Sale List" }
                 </span>
                 ?
               </p>
@@ -1168,7 +1221,8 @@ const financeSecretaries = [
                         <img
                           src={getImageUrl((selectedItem.photos || selectedItem.photo)[0])}
                           alt="Main view"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => openImageGallery((selectedItem.photos || selectedItem.photo), 0)}
                           onError={(e) => {
                             e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
                           }}
@@ -1182,6 +1236,7 @@ const financeSecretaries = [
                                 src={getImageUrl(photo)}
                                 alt={`View ${index + 2}`}
                                 className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => openImageGallery((selectedItem.photos || selectedItem.photo), index + 1)}
                                 onError={(e) => {
                                   e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
                                 }}
@@ -1279,6 +1334,11 @@ const financeSecretaries = [
                             {' '}({((parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)) / parseFloat(selectedItem.purchaseValue) * 100).toFixed(1)}%)
                           </p>
                         )}
+                        <p className={`font-semibold ${selectedItem.canBeSold ? "text-blue-600" : "text-green-600"}`}>
+                          {selectedItem.canBeSold ? "For Sale" : "For Collection"}
+                        </p>
+
+
                       </div>
                     </div>
 
@@ -1288,6 +1348,75 @@ const financeSecretaries = [
                         <p className="text-sm text-gray-700">{selectedItem.notes}</p>
                       </div>
                     )}
+                    {/* Image Gallery Modal */}
+{showImageGallery && (
+  <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60]">
+    <div className="relative w-full h-full flex items-center justify-center p-4">
+      {/* Close Button */}
+      <button
+        onClick={closeGallery}
+        className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 z-10"
+      >
+        ×
+      </button>
+      
+      {/* Image Counter */}
+      <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded">
+        {currentImageIndex + 1} / {galleryImages.length}
+      </div>
+      
+      {/* Previous Button */}
+      {galleryImages.length > 1 && (
+        <button
+          onClick={prevImage}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-4xl hover:text-gray-300 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center"
+        >
+          ‹
+        </button>
+      )}
+      
+      {/* Current Image */}
+      <img
+        src={getImageUrl(galleryImages[currentImageIndex])}
+        alt={`Gallery image ${currentImageIndex + 1}`}
+        className="max-w-full max-h-full object-contain"
+        onError={(e) => {
+          e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
+        }}
+      />
+      
+      {/* Next Button */}
+      {galleryImages.length > 1 && (
+        <button
+          onClick={nextImage}
+          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-4xl hover:text-gray-300 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center"
+        >
+          ›
+        </button>
+      )}
+      
+      {/* Thumbnail Strip */}
+      {galleryImages.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-black bg-opacity-50 p-2 rounded">
+          {galleryImages.map((photo, index) => (
+            <img
+              key={index}
+              src={getImageUrl(photo)}
+              alt={`Thumbnail ${index + 1}`}
+              className={`w-12 h-12 object-cover rounded cursor-pointer transition-opacity ${
+                index === currentImageIndex ? 'opacity-100 ring-2 ring-white' : 'opacity-60 hover:opacity-80'
+              }`}
+              onClick={() => setCurrentImageIndex(index)}
+              onError={(e) => {
+                e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OWEzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OL0E8L3RleHQ+PC9zdmc+";
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
                   </div>
                 </div>
               </div>
