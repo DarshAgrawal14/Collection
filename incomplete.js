@@ -43,12 +43,13 @@ export default function InventoryForm() {
     notes: "",
     number: "",
     noteType: "",
-    quantity: "",
+    quantity: "1",
     photo: [],
     thumbnailIndex: 0,
     purchaseValue: "",
     currentValue: "",
     acquisitionType: "bought",
+    canBeSold: false,
     boughtFrom: "",
     exchangeRate: ""
   });
@@ -341,6 +342,7 @@ const financeSecretaries = [
         </select>
       </div>
 
+      {/* Ruler and (conditionally) Metal */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
@@ -351,33 +353,43 @@ const financeSecretaries = [
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           required
         />
-        <input 
-          type="text" 
-          name="metal" 
-          placeholder="Metal Composition" 
-          value={formData.metal} 
-          onChange={handleChange} 
-          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-        />
+        
+        {type === "Coin" && (
+          <input 
+            type="text" 
+            name="metal" 
+            placeholder="Metal Composition" 
+            value={formData.metal} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <input 
-          type="text" 
-          name="coinValue" 
-          placeholder="Coin Value" 
-          value={formData.coinValue} 
-          onChange={handleChange} 
-          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-        />
-        <input 
-          type="text" 
-          name="weight" 
-          placeholder="Weight (grams)" 
-          value={formData.weight} 
-          onChange={handleChange} 
-          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-        />
+      {/* Coin-only: Coin Value + Weight */}
+      {type === "Coin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <input 
+            type="text" 
+            name="coinValue" 
+            placeholder="Coin Value" 
+            value={formData.coinValue} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+          <input 
+            type="text" 
+            name="weight" 
+            placeholder="Weight (grams)" 
+            value={formData.weight} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+        </div>
+      )}
+
+      {/* Always show: Year, Script, Rule Duration */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
           name="year" 
@@ -387,9 +399,6 @@ const financeSecretaries = [
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           required
         />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
           name="script" 
@@ -398,6 +407,9 @@ const financeSecretaries = [
           onChange={handleChange} 
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
+      </div>
+
+      <div>
         <input 
           type="text" 
           name="ruleDuration" 
@@ -409,6 +421,7 @@ const financeSecretaries = [
       </div>
     </div>
   );
+
 
   // Post-Independence Indian Form
   const renderPostIndependenceForm = () => (
@@ -479,6 +492,8 @@ const financeSecretaries = [
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h4 className="font-semibold text-gray-800 mb-4">💵 Note Specific Details</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+          <label  className="block text-sm font-medium text-gray-700 mb-0.5 pl-[2px]">Note Serial Number</label>
             <input 
               type="text" 
               name="number" 
@@ -487,6 +502,9 @@ const financeSecretaries = [
               onChange={handleChange}
               className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-0.5 pl-[2px]">Series</label>
             <input 
               type="text" 
               name="series" 
@@ -495,14 +513,18 @@ const financeSecretaries = [
               onChange={handleChange}
               className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-0.5 pl-[2px]">Note Type</label>
             <input 
               type="text" 
               name="noteType" 
-              placeholder="Note Type (e.g., Inset A)" 
+              placeholder="Note Type" 
               value={formData.noteType || ""} 
               onChange={handleChange}
               className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            </div>
           </div>
           <div className="mt-4">
             <InsetSelection />
@@ -621,11 +643,6 @@ const financeSecretaries = [
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (formData.photo.length === 0) {
-      alert("Please upload at least one photo");
-      return;
-    }
 
     setShowConfirmDialog(true);
   };
@@ -887,7 +904,26 @@ const financeSecretaries = [
                 />
               </div>
             </div>
-            
+            <div className="mt-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="canBeSold"
+                checked={formData.canBeSold || false}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    canBeSold: e.target.checked,
+                  }))
+                }
+                className="w-7 h-7 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+              />
+              <label htmlFor="canBeSold" className="text-sm font-medium text-gray-800 ml-3">
+                Can be Sold
+              </label>
+            </div>
+          </div>
+
             <div className="mt-4">
               <div className="flex items-center gap-2">
                 <input
@@ -901,9 +937,9 @@ const financeSecretaries = [
                       rareReason: e.target.checked ? prev.rareReason : "",
                     }))
                   }
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  className="w-7 h-7 text-blue-600 rounded focus:ring-blue-600"
                 />
-                <label htmlFor="isRare" className="text-sm font-medium text-gray-700">Mark as Rare Item</label>
+                <label htmlFor="isRare" className="text-sm font-medium text-gray-800 ml-3">Mark as Rare Item</label>
               </div>
               
               {formData.isRare && (
@@ -1067,7 +1103,14 @@ const financeSecretaries = [
               <div className="text-5xl mb-4">❓</div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Addition</h3>
               <p className="text-gray-600">
-                Are you sure you want to add this {type.toLowerCase()} to your collection?
+                Are you sure you want to add this {type.toLowerCase()} to your{" "}
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold 
+                  ${formData.canBeSold 
+                    ? 'bg-green-100 text-green-800 border border-green-300' 
+                    : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
+                  {formData.canBeSold ? "🛒 Sale List" : "📚 Collection"}
+                </span>
+                ?
               </p>
               <div className="bg-gray-50 rounded-lg p-4 mt-4 text-left">
                 <p className="text-sm text-gray-700">
@@ -1075,7 +1118,8 @@ const financeSecretaries = [
                   <strong>Region:</strong> {region}<br/>
                   <strong>Denomination:</strong> {formData.denomination || formData.coinValue}<br/>
                   <strong>Year:</strong> {formData.year}<br/>
-                  <strong>Photos:</strong> {formData.photo.length}
+                  <strong>Photos:</strong> {formData.photo.length}<br/>
+                  <strong>Sellable:</strong> {formData.canBeSold ? "Yes" : "No"}
                 </p>
               </div>
             </div>
