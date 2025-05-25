@@ -25,6 +25,7 @@ export default function InventoryForm() {
     isRare: false,
     rareReason: "",
     mint: "",
+    inset: "",
     isMule: false,
     muleDescription: "",
     commemorativeNameFor: "",
@@ -88,6 +89,28 @@ export default function InventoryForm() {
     "Canada (C)"
   ];
 
+  const insetOptions = [
+  "None", "A", "B", "C", "D", "E", "F", "G", "H",
+  "L", "M", "N", "P", "Q", "R", "S", "T", "U",
+  "W", "Y", "Z", "Star (*)", "Diamond (♦)", "Other"
+];
+const financeSecretaries = [
+  "A. K. Roy (1970s)",
+  "K. R. Choksey (1980s)",
+  "S. Venkitaramanan (1980s)",
+  "Montek Singh Ahluwalia (1990s)",
+  "D. C. Gupta (1990s)",
+  "N. K. Singh (1990s)",
+  "Sushma Nath (2000s)",
+  "Arvind Mayaram (2010s)",
+  "Ratan Watal (2010s)",
+  "Rajiv Mehrishi (2010s)",
+  "Hasmukh Adhia (2017)",
+  "Subhash Chandra Garg (2018)",
+  "Rajiv Kumar (2019)",
+  "T. V. Somanathan (2021–Present)"
+];
+
   // Fetch recent items from database
   const fetchRecentItems = async () => {
     try {
@@ -125,9 +148,14 @@ export default function InventoryForm() {
       .replace(/[\W_]+/g, '')
       .trim();
 
-  const filteredGovernors = rbiGovernors.filter(governor =>
-    normalize(governor).includes(normalize(issuerSearch))
-  );
+  const filteredSignatories = (
+  after1947 && formData.denomination.trim() === "1"
+    ? financeSecretaries
+    : rbiGovernors
+).filter(name =>
+  normalize(name).includes(normalize(issuerSearch))
+);
+
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -195,6 +223,22 @@ export default function InventoryForm() {
       )}
     </div>
   );
+  const InsetSelection = () => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-gray-700">Inset Letter</label>
+    <select
+      className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+      onChange={(e) => setFormData(prev => ({ ...prev, inset: e.target.value }))}
+      value={formData.inset}
+    >
+      <option value="">-- Select Inset --</option>
+      {insetOptions.map((inset, idx) => (
+        <option key={idx} value={inset}>{inset}</option>
+      ))}
+    </select>
+  </div>
+);
+
 
   // Other Countries Form
   const renderOtherCountriesForm = () => (
@@ -393,9 +437,9 @@ export default function InventoryForm() {
                 autoComplete="off"
               />
               
-              {showIssuerDropdown && filteredGovernors.length > 0 && (
+              {showIssuerDropdown && filteredSignatories.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {filteredGovernors.map((governor, index) => (
+                  {filteredSignatories.map((governor, index) => (
                     <div
                       key={index}
                       className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
@@ -443,7 +487,7 @@ export default function InventoryForm() {
             />
           </div>
           <div className="mt-4">
-            <MintSelection />
+            <InsetSelection />
           </div>
         </div>
       )}
@@ -726,6 +770,7 @@ export default function InventoryForm() {
           </div>
 
           {/* Collection Details */}
+          {/* Collection Details - This is where mark1.js ends, so this is the remaining part */}
           <div className="mt-8">
             <SectionHeader 
               icon="💰" 
@@ -921,36 +966,33 @@ export default function InventoryForm() {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="mt-8 flex justify-center">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-            >
-              {submitting ? "🔄 Adding to Collection..." : "✅ Add to Collection"}
-            </button>
-          </div>
+          <button 
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+          >
+            {submitting ? "Adding to Collection..." : "➕ Add to Collection"}
+          </button>
         </form>
 
-        {/* Recent Items Section */}
-        <div className="bg-white rounded-xl shadow-xl p-8">
-          <SectionHeader 
-            icon="🕒" 
-            title="Recently Added Items" 
-            description={`Your collection (${inventory.length} items)`}
-          />
-          
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">📚 Recent Items ({inventory.length})</h2>
           {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">Loading recent items...</span>
+            <div className="bg-gray-50 p-12 text-center rounded-lg">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading recent items...</p>
             </div>
-          ) : inventory.length > 0 ? (
+          ) : inventory.length === 0 ? (
+            <div className="bg-gray-50 p-12 text-center rounded-lg">
+              <div className="text-6xl mb-4">📋</div>
+              <p className="text-gray-500 text-lg">No items in your collection yet</p>
+              <p className="text-gray-400">Add your first item using the form above</p>
+            </div>
+          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {inventory.map((item, index) => (
-                <div
-                  key={item._id || index}
+              {inventory.map((item, idx) => (
+                <div 
+                  key={item._id || idx} 
                   className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
                   onClick={() => {
                     setSelectedItem(item);
@@ -964,25 +1006,21 @@ export default function InventoryForm() {
                         alt="Item thumbnail"
                         className="w-full h-full object-cover"
                         onError={(e) => {
+                          console.error("Image failed to load:", e.target.src);
                           e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
                         }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
                         <div className="text-center">
-                          <div className="text-4xl mb-2">{item.type === "Note" ? "💵" : "🪙"}</div>
+                          <div className="text-4xl mb-2">{item.type === "Coin" ? "🪙" : "💵"}</div>
                           <div className="text-sm">No Image</div>
                         </div>
                       </div>
                     )}
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs font-medium">
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded text-xs">
                       {item.type}
                     </div>
-                    {item.isRare && (
-                      <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
-                        ⭐ Rare
-                      </div>
-                    )}
                   </div>
                   
                   <div className="p-4">
@@ -991,227 +1029,213 @@ export default function InventoryForm() {
                     </h3>
                     <p className="text-gray-600 text-sm mb-2">{item.year}</p>
                     <p className="text-gray-700 text-sm truncate mb-3">
-                      {item.region === "India" 
-                        ? (item.after1947 ? "🇮🇳 Post-Independence" : "🏛️ Colonial Period")
-                        : `🌍 ${item.country || "International"}`
-                      }
+                      {item.region} • {item.issuer || item.mint || item.ruler}
                     </p>
-                    {item.condition && (
-                      <div className="mb-3">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
-                          {item.condition}
-                        </span>
-                      </div>
-                    )}
                     {item.currentValue && (
                       <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                        <p className="text-green-700 font-semibold text-sm">
-                          Value: ₹{parseFloat(item.currentValue).toLocaleString()}
-                        </p>
-                        {item.purchaseValue && (
-                          <p className={`text-xs mt-1 ${
-                            parseFloat(item.currentValue) > parseFloat(item.purchaseValue) 
-                              ? 'text-green-600' 
-                              : parseFloat(item.currentValue) < parseFloat(item.purchaseValue) 
-                                ? 'text-red-600' 
-                                : 'text-gray-600'
-                          }`}>
-                            {parseFloat(item.currentValue) > parseFloat(item.purchaseValue) ? '📈 +' : 
-                             parseFloat(item.currentValue) < parseFloat(item.purchaseValue) ? '📉 ' : '→ '}
-                            ₹{Math.abs(parseFloat(item.currentValue) - parseFloat(item.purchaseValue)).toFixed(2)}
-                          </p>
-                        )}
+                        <p className="text-green-700 font-semibold text-sm">Value: ₹{item.currentValue}</p>
                       </div>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-6xl mb-4">📦</div>
-              <p className="text-lg mb-2">No items in your collection yet</p>
-              <p className="text-sm text-gray-400">Add your first item using the form above!</p>
-            </div>
           )}
         </div>
+      </div>
 
-        {/* Confirmation Dialog */}
-        {showConfirmDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-md w-full p-6">
-              <div className="text-center mb-6">
-                <div className="text-5xl mb-4">❓</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Addition</h3>
-                <p className="text-gray-600">
-                  Are you sure you want to add this {formData.type.toLowerCase()} to your collection?
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-4">❓</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Addition</h3>
+              <p className="text-gray-600">
+                Are you sure you want to add this {type.toLowerCase()} to your collection?
+              </p>
+              <div className="bg-gray-50 rounded-lg p-4 mt-4 text-left">
+                <p className="text-sm text-gray-700">
+                  <strong>Type:</strong> {type}<br/>
+                  <strong>Region:</strong> {region}<br/>
+                  <strong>Denomination:</strong> {formData.denomination || formData.coinValue}<br/>
+                  <strong>Year:</strong> {formData.year}<br/>
+                  <strong>Photos:</strong> {formData.photo.length}
                 </p>
-                <div className="bg-gray-50 rounded-lg p-4 mt-4 text-left">
-                  <p className="text-sm text-gray-700">
-                    <strong>Type:</strong> {formData.type}<br/>
-                    <strong>Region:</strong> {formData.region}<br/>
-                    <strong>Denomination:</strong> {formData.denomination || formData.coinValue}<br/>
-                    <strong>Year:</strong> {formData.year}<br/>
-                    <strong>Photos:</strong> {formData.photo.length}
-                    {formData.isRare && <><br/><strong>⭐ Marked as Rare</strong></>}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConfirmDialog(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmSubmit}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  disabled={submitting}
-                >
-                  {submitting ? "Adding..." : "Yes, Add Item"}
-                </button>
               </div>
             </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmDialog(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSubmit}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Yes, Add Item
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Enhanced Item Detail Dialog */}
-        {showDialog && selectedItem && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  {selectedItem.type === "Note" ? "💵" : "🪙"} Item Details
-                  {selectedItem.isRare && <span className="text-yellow-500">⭐</span>}
-                </h3>
-                <button
-                  onClick={() => setShowDialog(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Images Section */}
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800 mb-4">📸 Photos</h4>
-                    {(selectedItem.photos || selectedItem.photo) && (selectedItem.photos || selectedItem.photo).length > 0 ? (
-                      <div className="space-y-4">
-                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                          <img
-                            src={getImageUrl((selectedItem.photos || selectedItem.photo)[0])}
-                            alt="Main view"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
-                            }}
-                          />
-                        </div>
-                        {(selectedItem.photos || selectedItem.photo).length > 1 && (
-                          <div className="grid grid-cols-4 gap-2">
-                            {(selectedItem.photos || selectedItem.photo).slice(1).map((photo, index) => (
-                              <div key={index} className="aspect-square bg-gray-100 rounded overflow-hidden">
-                                <img
-                                  src={getImageUrl(photo)}
-                                  alt={`View ${index + 2}`}
-                                  className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                  onError={(e) => {
-                                    e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-                        <div className="text-center">
-                          <div className="text-6xl mb-4">{selectedItem.type === "Note" ? "💵" : "🪙"}</div>
-                          <div className="text-lg">No Images Available</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Details Section */}
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800 mb-4">ℹ️ Item Information</h4>
+      {/* Item Detail Dialog */}
+      {showDialog && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-2xl font-bold text-gray-900">
+                {selectedItem.type === "Coin" ? "🪙" : "💵"} Item Details
+              </h3>
+              <button
+                onClick={() => setShowDialog(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Images Section */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">📸 Photos</h4>
+                  {(selectedItem.photos || selectedItem.photo) && (selectedItem.photos || selectedItem.photo).length > 0 ? (
                     <div className="space-y-4">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h5 className="font-semibold text-gray-800 mb-2">Basic Details</h5>
-                        <div className="space-y-2 text-sm">
-                          <p><span className="font-medium">Type:</span> {selectedItem.type}</p>
-                          <p><span className="font-medium">Region:</span> {selectedItem.region}</p>
-                          {selectedItem.country && <p><span className="font-medium">Country:</span> {selectedItem.country}</p>}
-                          {selectedItem.currency && <p><span className="font-medium">Currency:</span> {selectedItem.currency}</p>}
-                          <p><span className="font-medium">Denomination:</span> {selectedItem.denomination || selectedItem.coinValue || "N/A"}</p>
-                          <p><span className="font-medium">Year:</span> {selectedItem.year || "N/A"}</p>
-                          {selectedItem.condition && <p><span className="font-medium">Condition:</span> {selectedItem.condition}</p>}
-                          {selectedItem.quantity && selectedItem.quantity > 1 && (
-                            <p><span className="font-medium">Quantity:</span> {selectedItem.quantity}</p>
-                          )}
-                        </div>
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={getImageUrl((selectedItem.photos || selectedItem.photo)[0])}
+                          alt="Main view"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
+                          }}
+                        />
                       </div>
-
-                      {selectedItem.isRare && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <h5 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
-                            ⭐ Rare Item Information
-                          </h5>
-                          {selectedItem.rareReason && (
-                            <p className="text-sm text-yellow-700">{selectedItem.rareReason}</p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="bg-green-50 rounded-lg p-4">
-                        <h5 className="font-semibold text-gray-800 mb-2">💰 Collection Information</h5>
-                        <div className="space-y-2 text-sm">
-                          <p><span className="font-medium">Acquisition:</span> 
-                            {selectedItem.acquisitionType === "bought" ? " 🛒 Purchased" : 
-                             selectedItem.acquisitionType === "gift" ? " 🎁 Gift" :
-                             selectedItem.acquisitionType === "exchange" ? " 🔄 Exchange" :
-                             selectedItem.acquisitionType === "found" ? " 🔍 Found" :
-                             selectedItem.acquisitionType === "inherited" ? " 👨‍👩‍👧‍👦 Inherited" :
-                             selectedItem.acquisitionType === "seen" ? " 👀 Seen" : " Unknown"}
-                          </p>
-                          {selectedItem.boughtFrom && (
-                            <p><span className="font-medium">
-                              {selectedItem.acquisitionType === "bought" ? "Purchased From:" : 
-                               selectedItem.acquisitionType === "seen" ? "Seen At:" : "Source:"}
-                            </span> {selectedItem.boughtFrom}</p>
-                          )}
-                          {selectedItem.purchaseValue && <p><span className="font-medium">Purchase Value:</span> ₹{parseFloat(selectedItem.purchaseValue).toLocaleString()}</p>}
-                          {selectedItem.currentValue && <p><span className="font-medium">Current Value:</span> ₹{parseFloat(selectedItem.currentValue).toLocaleString()}</p>}
-                          {selectedItem.purchaseValue && selectedItem.currentValue && (
-                            <p className={`font-medium ${parseFloat(selectedItem.currentValue) > parseFloat(selectedItem.purchaseValue) ? 'text-green-600' : parseFloat(selectedItem.currentValue) < parseFloat(selectedItem.purchaseValue) ? 'text-red-600' : 'text-gray-600'}`}>
-                              Change: {parseFloat(selectedItem.currentValue) > parseFloat(selectedItem.purchaseValue) ? '📈 +' : parseFloat(selectedItem.currentValue) < parseFloat(selectedItem.purchaseValue) ? '📉 ' : '→ '}
-                              ₹{Math.abs(parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)).toFixed(2)}
-                              {' '}({((parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)) / parseFloat(selectedItem.purchaseValue) * 100).toFixed(1)}%)
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {selectedItem.notes && (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h5 className="font-semibold text-gray-800 mb-2">📝 Additional Notes</h5>
-                          <p className="text-sm text-gray-700">{selectedItem.notes}</p>
+                      {(selectedItem.photos || selectedItem.photo).length > 1 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {(selectedItem.photos || selectedItem.photo).slice(1).map((photo, index) => (
+                            <div key={index} className="aspect-square bg-gray-100 rounded overflow-hidden">
+                              <img
+                                src={getImageUrl(photo)}
+                                alt={`View ${index + 2}`}
+                                className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                onError={(e) => {
+                                  e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
+                                }}
+                              />
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
+                  ) : (
+                    <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                      <div className="text-center">
+                        <div className="text-6xl mb-4">{selectedItem.type === "Coin" ? "🪙" : "💵"}</div>
+                        <div className="text-lg">No Images Available</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Details Section */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">ℹ️ Item Information</h4>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h5 className="font-semibold text-gray-800 mb-2">Basic Details</h5>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-medium">Type:</span> {selectedItem.type}</p>
+                        <p><span className="font-medium">Region:</span> {selectedItem.region}</p>
+                        {selectedItem.country && <p><span className="font-medium">Country:</span> {selectedItem.country}</p>}
+                        {selectedItem.currency && <p><span className="font-medium">Currency:</span> {selectedItem.currency}</p>}
+                        <p><span className="font-medium">Denomination:</span> {selectedItem.denomination || selectedItem.coinValue}</p>
+                        <p><span className="font-medium">Year:</span> {selectedItem.year}</p>
+                        {selectedItem.condition && <p><span className="font-medium">Condition:</span> {selectedItem.condition}</p>}
+                      </div>
+                    </div>
+
+                    {selectedItem.region === "India" && (
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-gray-800 mb-2">
+                          {selectedItem.after1947 ? "Post-Independence Details" : "Colonial Period Details"}
+                        </h5>
+                        <div className="space-y-2 text-sm">
+                          {selectedItem.after1947 ? (
+                            <>
+                              {selectedItem.issuer && <p><span className="font-medium">Issuer:</span> {selectedItem.issuer}</p>}
+                              {selectedItem.mint && <p><span className="font-medium">Mint:</span> {selectedItem.mint}</p>}
+                              {selectedItem.isCommemorative && (
+                                <>
+                                  <p><span className="font-medium">Type:</span> Commemorative Coin</p>
+                                  {selectedItem.commemorativeNameFor && <p><span className="font-medium">Commemorates:</span> {selectedItem.commemorativeNameFor}</p>}
+                                  {selectedItem.commemorativeRange && <p><span className="font-medium">Series:</span> {selectedItem.commemorativeRange}</p>}
+                                </>
+                              )}
+                              {selectedItem.isMule && (
+                                <>
+                                  <p><span className="font-medium">Type:</span> Mule Coin</p>
+                                  {selectedItem.muleDescription && <p><span className="font-medium">Mule Details:</span> {selectedItem.muleDescription}</p>}
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {selectedItem.rulerType && <p><span className="font-medium">Authority:</span> {selectedItem.rulerType}</p>}
+                              {selectedItem.ruler && <p><span className="font-medium">Ruler:</span> {selectedItem.ruler}</p>}
+                              {selectedItem.ruleDuration && <p><span className="font-medium">Rule Period:</span> {selectedItem.ruleDuration}</p>}
+                              {selectedItem.metal && <p><span className="font-medium">Metal:</span> {selectedItem.metal}</p>}
+                              {selectedItem.weight && <p><span className="font-medium">Weight:</span> {selectedItem.weight}</p>}
+                              {selectedItem.script && <p><span className="font-medium">Script:</span> {selectedItem.script}</p>}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedItem.exchangeRate && (
+                      <div className="bg-yellow-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-gray-800 mb-2">Exchange Information</h5>
+                        <p className="text-sm"><span className="font-medium">Exchange Rate:</span> {selectedItem.exchangeRate}</p>
+                      </div>
+                    )}
+
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h5 className="font-semibold text-gray-800 mb-2">💰 Collection Information</h5>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-medium">Acquisition:</span> {selectedItem.acquisitionType === "bought" ? "Purchased" : "Seen"}</p>
+                        {selectedItem.boughtFrom && (
+                          <p><span className="font-medium">{selectedItem.acquisitionType === "bought" ? "Purchased From" : "Seen At"}:</span> {selectedItem.boughtFrom}</p>
+                        )}
+                        {selectedItem.purchaseValue && <p><span className="font-medium">Purchase Value:</span> ₹{selectedItem.purchaseValue}</p>}
+                        {selectedItem.currentValue && <p><span className="font-medium">Current Value:</span> ₹{selectedItem.currentValue}</p>}
+                        {selectedItem.purchaseValue && selectedItem.currentValue && (
+                          <p className={`font-medium ${parseFloat(selectedItem.currentValue) > parseFloat(selectedItem.purchaseValue) ? 'text-green-600' : parseFloat(selectedItem.currentValue) < parseFloat(selectedItem.purchaseValue) ? 'text-red-600' : 'text-gray-600'}`}>
+                            Change: {parseFloat(selectedItem.currentValue) > parseFloat(selectedItem.purchaseValue) ? '+' : ''}
+                            ₹{(parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)).toFixed(2)}
+                            {' '}({((parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)) / parseFloat(selectedItem.purchaseValue) * 100).toFixed(1)}%)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedItem.notes && (
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h5 className="font-semibold text-gray-800 mb-2">📝 Additional Notes</h5>
+                        <p className="text-sm text-gray-700">{selectedItem.notes}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        )}
-        
-      </div>
-      </div>
-  );}
+        </div>
+      )}
+    </div>
+  );
+}
