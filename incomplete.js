@@ -13,13 +13,19 @@ export default function InventoryForm() {
   const [rulerType, setRulerType] = useState("British");
   const [isCommemorative, setIsCommemorative] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [issuerSearch, setIssuerSearch] = useState("");
+  const [showIssuerDropdown, setShowIssuerDropdown] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+
   const [formData, setFormData] = useState({
     currency: "",
     country: "",
     denomination: "",
     year: "",
+    isRare: false,
+    rareReason: "",
     mint: "",
+    inset: "",
     isMule: false,
     muleDescription: "",
     commemorativeNameFor: "",
@@ -35,6 +41,9 @@ export default function InventoryForm() {
     series: "",
     condition: "",
     notes: "",
+    number: "",
+    noteType: "",
+    quantity: "",
     photo: [],
     thumbnailIndex: 0,
     purchaseValue: "",
@@ -43,6 +52,82 @@ export default function InventoryForm() {
     boughtFrom: "",
     exchangeRate: ""
   });
+
+  const rbiGovernors = [
+    "C. D. Deshmukh (11 Aug 1943 – 30 Jun 1949)",
+    "Benegal Rama Rau (1 Jul 1949 – 14 Jan 1957)",
+    "K. G. Ambegaonkar - Acting (14 Jan 1957 – 28 Feb 1957)",
+    "H. V. R. Iengar (1 Mar 1957 – 28 Feb 1962)",
+    "P. C. Bhattacharya (1 Mar 1962 – 30 Jun 1967)",
+    "L. K. Jha (1 Jul 1967 – 3 May 1970)",
+    "B. N. Adarkar - Acting (4 May 1970 – 15 Jun 1970)",
+    "S. Jagannathan (16 Jun 1970 – 19 May 1975)",
+    "N. C. Sen Gupta - Acting (19 May 1975 – 19 Aug 1975)",
+    "K. R. Puri (20 Aug 1975 – 2 May 1977)",
+    "M. Narasimham (2 May 1977 – 30 Nov 1977)",
+    "I. G. Patel (1 Dec 1977 – 15 Sep 1982)",
+    "Manmohan Singh (16 Sep 1982 – 14 Jan 1985)",
+    "Amitav Ghosh - Acting (15 Jan 1985 – 4 Feb 1985)",
+    "R. N. Malhotra (4 Feb 1985 – 22 Dec 1990)",
+    "S. Venkitaramanan (22 Dec 1990 – 21 Dec 1992)",
+    "C. Rangarajan (22 Dec 1992 – 21 Nov 1997)",
+    "Bimal Jalan (22 Nov 1997 – 6 Sep 2003)",
+    "Y. V. Reddy (6 Sep 2003 – 5 Sep 2008)",
+    "D. Subbarao (5 Sep 2008 – 4 Sep 2013)",
+    "Raghuram G. Rajan (4 Sep 2013 – 4 Sep 2016)",
+    "Urjit R. Patel (4 Sep 2016 – 10 Dec 2018)",
+    "Shaktikanta Das (12 Dec 2018 – Present)"
+  ];
+
+  const mintOptions = [
+    "Mumbai (●)", 
+    "Hyderabad (★)", 
+    "Noida (◇)", 
+    "Kolkata (No Mark)", 
+    "Moscow (M)", 
+    "Heaton (H)", 
+    "Canada (C)"
+  ];
+
+  const insetOptions = [
+  "None",
+  "A - Mysore",
+  "B - Mysore",
+  "C - Mysore",
+  "L - Mysore",
+  "G - Salboni",
+  "H - Salboni",
+  "M - Salboni",
+  "D - Dewas",
+  "E - Nasik",
+  "F - Nasik",
+  "N - Nasik",
+  "Star (★) - Replacement Note",
+  "Other"
+];
+
+
+
+const financeSecretaries = [
+  "K. R. K. Menon (1949-1950)",
+  "K. G. Ambegaonkar (1950-1955)",
+  " H. M. Patel (1955-1958)",
+  "A. K. Roy (1958-1960)",
+  "L. K . Jha(1960-1964)",
+  "S. Bhoothlingam (1964-1966)",
+  "S. Jagannathan (1967-1968)",
+  "Dr. I. G. Patel (1968-1972)",
+  "M. G. Kaul (1973-1976)",
+  "Dr. Manmohan Singh (1976-1960)",
+  "R. N. Malhotra (1980-1981)",
+  "M. Narasimham (1981-1983)",
+  "Pratap Kishan Kaul(1983-1985)",
+  "S. Venkitaramanan (1985-1989)",
+  "Gopi Kishan Aurora (1989-1990",
+  "Bimal Jalan (1990-1991)",
+  "S. P. Shukla (1991)",
+  "Montek Singh Ahluwalia (1991-94)"
+];
 
   // Fetch recent items from database
   const fetchRecentItems = async () => {
@@ -75,6 +160,21 @@ export default function InventoryForm() {
     fetchRecentItems();
   }, []);
 
+  const normalize = (str) =>
+    str
+      .toLowerCase()
+      .replace(/[\W_]+/g, '')
+      .trim();
+
+  const filteredSignatories = (
+  after1947 && formData.denomination.trim() === "1"
+    ? financeSecretaries
+    : rbiGovernors
+).filter(name =>
+  normalize(name).includes(normalize(issuerSearch))
+);
+
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (files) {
@@ -87,11 +187,436 @@ export default function InventoryForm() {
     }
   };
 
+  const selectGovernor = (governor) => {
+    setIssuerSearch(governor);
+    setFormData(prev => ({ ...prev, issuer: governor }));
+    setShowIssuerDropdown(false);
+  };
+
   const removePhoto = (index) => {
     setFormData((prev) => ({
       ...prev,
       photo: prev.photo.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleIssuerChange = (e) => {
+    setIssuerSearch(e.target.value);
+  };
+
+  // Section Header Component
+  const SectionHeader = ({ icon, title, description }) => (
+    <div className="border-l-4 border-blue-500 pl-4 mb-6">
+      <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+        <span className="text-2xl">{icon}</span>
+        {title}
+      </h3>
+      {description && <p className="text-gray-600 text-sm mt-1">{description}</p>}
+    </div>
+  );
+
+  // Mint Selection Component
+  const MintSelection = () => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">Mint Location</label>
+      <select
+        className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        onChange={(e) => setFormData(prev => ({ ...prev, mint: e.target.value }))}
+        value={mintOptions.includes(formData.mint) ? formData.mint : ""}
+      >
+        <option value="">-- Select Mint --</option>
+        {mintOptions.map((mint, idx) => (
+          <option key={idx} value={mint}>{mint}</option>
+        ))}
+      </select>
+      {!mintOptions.includes(formData.mint) && (
+        <input
+          type="text"
+          name="mint"
+          placeholder="Custom Mint (if not listed)"
+          value={formData.mint}
+          onChange={handleChange}
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+      )}
+    </div>
+  );
+  const InsetSelection = () => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-gray-700">Inset Letter</label>
+    <select
+      className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+      onChange={(e) => setFormData(prev => ({ ...prev, inset: e.target.value }))}
+      value={formData.inset}
+    >
+      <option value="">-- Select Inset --</option>
+      {insetOptions.map((inset, idx) => (
+        <option key={idx} value={inset}>{inset}</option>
+      ))}
+    </select>
+  </div>
+);
+
+
+  // Other Countries Form
+  const renderOtherCountriesForm = () => (
+    <div className="space-y-6">
+      <SectionHeader 
+        icon="🌍" 
+        title="International Currency Details" 
+        description="Enter details for non-Indian currency"
+      />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <input 
+          type="text" 
+          name="country" 
+          placeholder="Country" 
+          value={formData.country} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+        <input 
+          type="text" 
+          name="currency" 
+          placeholder="Currency" 
+          value={formData.currency} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <input 
+          type="text" 
+          name="denomination" 
+          placeholder="Denomination" 
+          value={formData.denomination} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+        <input 
+          type="text" 
+          name="year" 
+          placeholder="Year" 
+          value={formData.year} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+        <input 
+          type="text" 
+          name="exchangeRate" 
+          placeholder="Exchange Rate to INR" 
+          value={formData.exchangeRate} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+      </div>
+    </div>
+  );
+
+  // Pre-Independence Indian Form
+  const renderPreIndependenceForm = () => (
+    <div className="space-y-6">
+      <SectionHeader 
+        icon="🏛️" 
+        title="Colonial Period Details" 
+        description="Details for pre-1947 Indian currency"
+      />
+      
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
+        <select 
+          onChange={(e) => setRulerType(e.target.value)} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" 
+          value={rulerType}
+        >
+          <option value="British">British Colonial</option>
+          <option value="Portuguese">Portuguese Colonial</option>
+          <option value="Kingdom/Samrajya">Indian Kingdom/Samrajya</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <input 
+          type="text" 
+          name="ruler" 
+          placeholder="Ruler Name" 
+          value={formData.ruler || ""} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+        <input 
+          type="text" 
+          name="metal" 
+          placeholder="Metal Composition" 
+          value={formData.metal} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <input 
+          type="text" 
+          name="coinValue" 
+          placeholder="Coin Value" 
+          value={formData.coinValue} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+        <input 
+          type="text" 
+          name="weight" 
+          placeholder="Weight (grams)" 
+          value={formData.weight} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+        <input 
+          type="text" 
+          name="year" 
+          placeholder="Year" 
+          value={formData.year} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <input 
+          type="text" 
+          name="script" 
+          placeholder="Script/Language" 
+          value={formData.script} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+        <input 
+          type="text" 
+          name="ruleDuration" 
+          placeholder="Rule Duration" 
+          value={formData.ruleDuration} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+      </div>
+    </div>
+  );
+
+  // Post-Independence Indian Form
+  const renderPostIndependenceForm = () => (
+    <div className="space-y-6">
+      <SectionHeader 
+        icon="🇮🇳" 
+        title="Independent India Details" 
+        description="Details for post-1947 Indian currency"
+      />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Denomination *</label>
+          <input 
+            type="text" 
+            name="denomination" 
+            placeholder="Enter denomination" 
+            value={formData.denomination} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            required
+          />
+        </div>
+
+        {type === "Note" ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {after1947 && formData.denomination.trim() === "1" ? "Finance Secretary" : "RBI Governor"}
+            </label>
+            <div className="relative">
+              <input 
+                type="text"
+                name="issuer"
+                placeholder={
+                  after1947 && formData.denomination.trim() === "1"
+                    ? "Finance Secretary"
+                    : "RBI Governor"
+                }
+                value={issuerSearch}
+                onChange={handleIssuerChange}
+                onFocus={() => setShowIssuerDropdown(true)}
+                onBlur={() => setTimeout(() => setShowIssuerDropdown(false), 200)}
+                className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                autoComplete="off"
+              />
+              
+              {showIssuerDropdown && filteredSignatories.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredSignatories.map((governor, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
+                      onMouseDown={() => selectGovernor(governor)}
+                    >
+                      {governor}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <MintSelection />
+        )}
+      </div>
+
+      {type === "Note" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h4 className="font-semibold text-gray-800 mb-4">💵 Note Specific Details</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <input 
+              type="text" 
+              name="number" 
+              placeholder="Note Serial Number" 
+              value={formData.number || ""} 
+              onChange={handleChange}
+              className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            />
+            <input 
+              type="text" 
+              name="series" 
+              placeholder="Series (e.g., L66, R23)" 
+              value={formData.series || ""} 
+              onChange={handleChange}
+              className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            />
+            <input 
+              type="text" 
+              name="noteType" 
+              placeholder="Note Type (e.g., Inset A)" 
+              value={formData.noteType || ""} 
+              onChange={handleChange}
+              className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            />
+          </div>
+          <div className="mt-4">
+            <InsetSelection />
+          </div>
+        </div>
+      )}
+      
+      {type === "Coin" && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <h4 className="font-semibold text-gray-800 mb-4">🪙 Coin Specific Details</h4>
+          
+          <div className="flex flex-wrap gap-6 mb-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="commemorative"
+                checked={isCommemorative}
+                onChange={(e) => setIsCommemorative(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="commemorative" className="text-sm font-medium text-gray-700">Commemorative Coin</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="mule"
+                checked={formData.isMule}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isMule: e.target.checked,
+                  }))
+                }
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="mule" className="text-sm font-medium text-gray-700">Mule Coin</label>
+            </div>
+          </div>
+
+          {formData.isMule && (
+            <div className="mb-4">
+              <input
+                type="text"
+                name="muleDescription"
+                placeholder="Mule Description (e.g., mismatched dies)"
+                value={formData.muleDescription}
+                onChange={handleChange}
+                className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              />
+            </div>
+          )}
+          
+          {isCommemorative && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <input 
+                type="text"
+                name="commemorativeNameFor"
+                placeholder="Commemorated Person/Event"
+                value={formData.commemorativeNameFor}
+                onChange={handleChange}
+                className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              />
+              <input 
+                type="text"
+                name="commemorativeRange"
+                placeholder="Series/Range"
+                value={formData.commemorativeRange}
+                onChange={handleChange}
+                className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              />
+            </div>
+          )}
+
+          <MintSelection />
+        </div>
+      )}
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Year *</label>
+        <input 
+          type="text" 
+          name="year" 
+          placeholder="Enter year" 
+          value={formData.year} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+      </div>
+    </div>
+  );
+
+  const displayFields = () => {
+    if (region === "Others") {
+      return renderOtherCountriesForm();
+    }
+
+    return (
+      <div className="space-y-8">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Historical Period</label>
+          <select 
+            onChange={(e) => setAfter1947(e.target.value === "true")} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" 
+            value={after1947.toString()}
+          >
+            <option value="true">After 1947 (Independent India)</option>
+            <option value="false">Before 1947 (Colonial Period)</option>
+          </select>
+        </div>
+
+        {after1947 ? renderPostIndependenceForm() : renderPreIndependenceForm()}
+      </div>
+    );
   };
 
   const handleSubmit = (e) => {
@@ -170,6 +695,7 @@ export default function InventoryForm() {
       console.error("Error submitting to backend:", err);
       alert("❌ Something went wrong while saving to backend.");
     } finally {
+      setIssuerSearch("");
       setSubmitting(false);
     }
   };
@@ -197,309 +723,44 @@ export default function InventoryForm() {
     return "";
   };
 
-  const displayFields = () => {
-    if (region === "Others") {
-      return (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input 
-              type="text" 
-              name="country" 
-              placeholder="Country" 
-              value={formData.country} 
-              onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              required
-            />
-            <input 
-              type="text" 
-              name="currency" 
-              placeholder="Currency" 
-              value={formData.currency} 
-              onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input 
-              type="text" 
-              name="denomination" 
-              placeholder="Denomination" 
-              value={formData.denomination} 
-              onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              required
-            />
-            <input 
-              type="text" 
-              name="year" 
-              placeholder="Year" 
-              value={formData.year} 
-              onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              required
-            />
-            <input 
-              type="text" 
-              name="exchangeRate" 
-              placeholder="Exchange Rate" 
-              value={formData.exchangeRate} 
-              onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            />
-          </div>
-          <textarea 
-            name="notes" 
-            placeholder="Additional Information" 
-            value={formData.notes} 
-            onChange={handleChange} 
-            rows="3"
-            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
-          <select 
-            onChange={(e) => setAfter1947(e.target.value === "true")} 
-            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-            value={after1947.toString()}
-          >
-            <option value="true">After 1947 (Independent India)</option>
-            <option value="false">Before 1947 (Colonial Period)</option>
-          </select>
-        </div>
-
-        {!after1947 ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
-              <select 
-                onChange={(e) => setRulerType(e.target.value)} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-                value={rulerType}
-              >
-                <option value="British">British</option>
-                <option value="Portuguese">Portuguese</option>
-                <option value="Kingdom/Samrajya">Kingdom/Samrajya</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input 
-                type="text" 
-                name="ruler" 
-                placeholder="Ruler Name" 
-                value={formData.ruler || ""} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              />
-              <input 
-                type="text" 
-                name="metal" 
-                placeholder="Metal" 
-                value={formData.metal} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input 
-                type="text" 
-                name="coinValue" 
-                placeholder="Coin Value" 
-                value={formData.coinValue} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <input 
-                type="text" 
-                name="weight" 
-                placeholder="Weight" 
-                value={formData.weight} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <input 
-                type="text" 
-                name="year" 
-                placeholder="Year" 
-                value={formData.year} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input 
-                type="text" 
-                name="script" 
-                placeholder="Script/Lekhi" 
-                value={formData.script} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <input 
-                type="text" 
-                name="ruleDuration" 
-                placeholder="Rule Duration" 
-                value={formData.ruleDuration} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input 
-                type="text" 
-                name="denomination" 
-                placeholder="Denomination" 
-                value={formData.denomination} 
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              />
-              {type === "Note" ? (
-                <input 
-                  type="text"
-                  name="issuer"
-                  placeholder={
-                    after1947 && formData.denomination.trim() === "1"
-                      ? "Finance Secretary"
-                      : "RBI Governor"
-                  }
-                  value={formData.issuer}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-              ) : (
-                <input 
-                  type="text" 
-                  name="mint" 
-                  placeholder="Mint" 
-                  value={formData.mint} 
-                  onChange={handleChange} 
-                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-              )}
-            </div>
-            
-            {type === "Coin" && (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="commemorative"
-                      checked={isCommemorative}
-                      onChange={(e) => setIsCommemorative(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor="commemorative" className="text-sm font-medium text-gray-700">Commemorative Coin</label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="mule"
-                      checked={formData.isMule}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          isMule: e.target.checked,
-                        }))
-                      }
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor="mule" className="text-sm font-medium text-gray-700">Mule Coin</label>
-                  </div>
-                </div>
-
-                {formData.isMule && (
-                  <input
-                    type="text"
-                    name="muleDescription"
-                    placeholder="Mule Description (e.g., mismatched dies)"
-                    value={formData.muleDescription}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                )}
-                
-                {isCommemorative && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input 
-                      type="text"
-                      name="commemorativeNameFor"
-                      placeholder="Commemorated Person/Event"
-                      value={formData.commemorativeNameFor}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                    <input 
-                      type="text"
-                      name="commemorativeRange"
-                      placeholder="Series/Range"
-                      value={formData.commemorativeRange}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <input 
-              type="text" 
-              name="year" 
-              placeholder="Year" 
-              value={formData.year} 
-              onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              required
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
         <div className="text-center mb-8">
+          <h1 className="text-gray-600 mb-4">|| Narayan Narayan ||</h1>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">🪙 Numismatic Collection Manager</h1>
-          <p className="text-gray-600">Manage your currency and coin collection with ease</p>
+          <p className="text-gray-600"> ~ Manish Agrawal</p>
         </div>
         
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Add New Item</h2>
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl p-8 mb-8">
+          <SectionHeader 
+            icon="➕" 
+            title="Add New Item" 
+            description="Fill in the details to add a new item to your collection"
+          />
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Item Type</label>
+          {/* Item Type and Region Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Item Type</label>
               <select 
                 value={type} 
                 onChange={(e) => setType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
                 <option value="Note">💵 Bank Note</option>
                 <option value="Coin">🪙 Coin</option>
               </select>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Region</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Region</label>
               <select 
                 value={region} 
                 onChange={(e) => setRegion(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
                 <option value="India">🇮🇳 India</option>
                 <option value="Others">🌍 Other Countries</option>
@@ -507,100 +768,217 @@ export default function InventoryForm() {
             </div>
           </div>
 
+          {/* Dynamic Fields */}
           {displayFields()}
 
-          <div className="border-t border-gray-200 pt-6 mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Collection Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <input 
-                type="text"
-                name="purchaseValue" 
-                placeholder="Purchase Value (₹)" 
-                value={formData.purchaseValue}
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <input 
-                type="text"
-                name="currentValue" 
-                placeholder="Current Value (₹)" 
-                value={formData.currentValue}
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <input 
-                type="text"
-                name="condition" 
-                placeholder="Condition (VF, XF, UNC)" 
-                value={formData.condition}
-                onChange={handleChange} 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
+          {/* Additional Notes */}
+          <div className="mt-8">
+            <SectionHeader 
+              icon="📝" 
+              title="Additional Information" 
+            />
+            <textarea 
+              name="notes" 
+              placeholder="Any additional information, special features, or notes about this item..." 
+              value={formData.notes} 
+              onChange={handleChange} 
+              rows="4"
+              className="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
+            />
+          </div>
+
+          {/* Collection Details */}
+          {/* Collection Details - This is where mark1.js ends, so this is the remaining part */}
+          <div className="mt-8">
+            <SectionHeader 
+              icon="💰" 
+              title="Collection & Value Information" 
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                <select 
+                  name="condition" 
+                  value={formData.condition} 
+                  onChange={handleChange}
+                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                >
+                  <option value="">Select Condition</option>
+                  <option value="UNC">UNC (Uncirculated)</option>
+                  <option value="AU">AU (About Uncirculated)</option>
+                  <option value="XF">XF (Extremely Fine)</option>
+                  <option value="VF">VF (Very Fine)</option>
+                  <option value="F">F (Fine)</option>
+                  <option value="VG">VG (Very Good)</option>
+                  <option value="G">G (Good)</option>
+                  <option value="Poor">Poor</option>
+                  <option value="Proof">Proof</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                <input 
+                  type="number" 
+                  name="quantity" 
+                  placeholder="Quantity" 
+                  value={formData.quantity} 
+                  onChange={handleChange} 
+                  min="1"
+                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Value (₹)</label>
+                <input 
+                  type="number" 
+                  name="purchaseValue" 
+                  placeholder="Purchase Value" 
+                  value={formData.purchaseValue} 
+                  onChange={handleChange} 
+                  step="0.01"
+                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Value (₹)</label>
+                <input 
+                  type="number" 
+                  name="currentValue" 
+                  placeholder="Current Value" 
+                  value={formData.currentValue} 
+                  onChange={handleChange} 
+                  step="0.01"
+                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">How did you acquire this?</label>
-                <select
-                  name="acquisitionType"
-                  value={formData.acquisitionType}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Acquisition Type</label>
+                <select 
+                  name="acquisitionType" 
+                  value={formData.acquisitionType} 
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                 >
                   <option value="bought">🛒 Purchased</option>
                   <option value="seen">👀 Seen (Not Owned)</option>
                 </select>
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {formData.acquisitionType === "bought" ? "Purchased From" : "Seen At"}
+                  {formData.acquisitionType === "bought" ? "Purchased From" : 
+                   formData.acquisitionType === "seen" ? "Seen At" : "Source"}
                 </label>
                 <input 
-                  type="text"
-                  name="boughtFrom"
-                  placeholder={formData.acquisitionType === "bought" ? "Shop, Seller, Website..." : "Exhibition, Friend, Place..."}
-                  value={formData.boughtFrom}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  type="text" 
+                  name="boughtFrom" 
+                  placeholder={formData.acquisitionType === "bought" ? "Shop/Person/Website" : 
+                              formData.acquisitionType === "seen" ? "Exhibition/Friend/Place" : "Source"} 
+                  value={formData.boughtFrom} 
+                  onChange={handleChange} 
+                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                 />
               </div>
             </div>
+            
+            <div className="mt-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isRare"
+                  checked={formData.isRare}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isRare: e.target.checked,
+                      rareReason: e.target.checked ? prev.rareReason : "",
+                    }))
+                  }
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="isRare" className="text-sm font-medium text-gray-700">Mark as Rare Item</label>
+              </div>
+              
+              {formData.isRare && (
+                <div className="mt-3">
+                  <textarea
+                    name="rareReason"
+                    placeholder="Why is this item rare? (e.g., printing error, low mintage, rare signature, limited edition)"
+                    value={formData.rareReason}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
+                    required
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="border-t border-gray-200 pt-6 mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">📸 Photos</h3>
-            <input 
-              type="file" 
-              multiple 
-              accept="image/*" 
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          {/* Photo Upload Section */}
+          <div className="mt-8">
+            <SectionHeader 
+              icon="📸" 
+              title="Photo Upload" 
+              description="Upload clear photos of both sides of the item"
             />
             
-            {formData.photo.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-3">Selected Photos ({formData.photo.length})</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {formData.photo.map((photo, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={getImageUrl(photo)}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
+                <input
+                  type="file"
+                  name="photo"
+                  multiple
+                  accept="image/*"
+                  onChange={handleChange}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <label htmlFor="photo-upload" className="cursor-pointer">
+                  <div className="text-gray-600">
+                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    📱 Click to upload photos or drag and drop
+                    <p className="text-sm text-gray-500 mt-2">PNG, JPG, JPEG up to 10MB each</p>
+                  </div>
+                </label>
               </div>
-            )}
+
+              {formData.photo.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">Selected Photos ({formData.photo.length})</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {formData.photo.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={getImageUrl(photo)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        >
+                          ×
+                        </button>
+                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <button 
@@ -873,3 +1251,6 @@ export default function InventoryForm() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
