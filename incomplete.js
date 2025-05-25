@@ -365,28 +365,31 @@ const financeSecretaries = [
 
   // Pre-Independence Indian Form
   const renderPreIndependenceForm = () => (
-    <div className="space-y-6">
-      <SectionHeader 
-        icon="🏛️" 
-        title="Colonial Period Details" 
-        description="Details for pre-1947 Indian currency"
-      />
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
-        <select 
-          onChange={(e) => setRulerType(e.target.value)} 
-          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" 
-          value={rulerType}
-        >
-          <option value="British">British Colonial</option>
-          <option value="Portuguese">Portuguese Colonial</option>
-          <option value="Kingdom/Samrajya">Indian Kingdom/Samrajya</option>
-        </select>
-      </div>
+  <div className="space-y-6">
+    <SectionHeader 
+      icon="🏛️" 
+      title="Colonial Period Details" 
+      description="Details for pre-1947 Indian currency"
+    />
 
-      {/* Ruler and (conditionally) Metal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* Ruling Authority */}
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
+      <select 
+        onChange={(e) => setRulerType(e.target.value)} 
+        value={rulerType}
+        className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+      >
+        <option value="British">British Colonial</option>
+        <option value="Portuguese">Portuguese Colonial</option>
+        <option value="Kingdom/Samrajya">Indian Kingdom/Samrajya</option>
+      </select>
+    </div>
+
+    {/* Ruler and Metal */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Ruler Name *</label>
         <input 
           type="text" 
           name="ruler" 
@@ -396,8 +399,10 @@ const financeSecretaries = [
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           required
         />
-        
-        {type === "Coin" && (
+      </div>
+      {type === "Coin" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Metal Composition</label>
           <input 
             type="text" 
             name="metal" 
@@ -406,33 +411,41 @@ const financeSecretaries = [
             onChange={handleChange} 
             className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           />
-        )}
-      </div>
-
-      {/* Coin-only: Coin Value + Weight */}
-      {type === "Coin" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <input 
-            type="text" 
-            name="coinValue" 
-            placeholder="Coin Value" 
-            value={formData.coinValue} 
-            onChange={handleChange} 
-            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
-          <input 
-            type="text" 
-            name="weight" 
-            placeholder="Weight (grams)" 
-            value={formData.weight} 
-            onChange={handleChange} 
-            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
         </div>
       )}
+    </div>
 
-      {/* Always show: Year, Script, Rule Duration */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* Coin-specific: Weight */}
+    {type === "Coin" && (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Weight (grams)</label>
+        <input 
+          type="text" 
+          name="weight" 
+          placeholder="Weight" 
+          value={formData.weight} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+      </div>
+    )}
+
+    {/* Denomination and Year */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Denomination</label>
+        <input 
+          type="text" 
+          name="denomination" 
+          placeholder="Denomination" 
+          value={formData.denomination} 
+          onChange={handleChange} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Year *</label>
         <input 
           type="text" 
           name="year" 
@@ -442,17 +455,24 @@ const financeSecretaries = [
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           required
         />
+      </div>
+    </div>
+
+    {/* Script and Rule Duration */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Script/Language</label>
         <input 
           type="text" 
           name="script" 
-          placeholder="Script/Language" 
+          placeholder="Script/Lekhi/Language" 
           value={formData.script} 
           onChange={handleChange} 
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
       </div>
-
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Rule Duration</label>
         <input 
           type="text" 
           name="ruleDuration" 
@@ -463,7 +483,9 @@ const financeSecretaries = [
         />
       </div>
     </div>
-  );
+  </div>
+);
+
 
 
   // Post-Independence Indian Form
@@ -477,11 +499,11 @@ const financeSecretaries = [
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Denomination *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Denomination</label>
           <input 
             type="text" 
             name="denomination" 
-            placeholder="Enter denomination" 
+            placeholder="Denomination" 
             value={formData.denomination} 
             onChange={handleChange} 
             className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -551,7 +573,7 @@ const financeSecretaries = [
             <input 
               type="text" 
               name="series" 
-              placeholder="Series (e.g., L66, R23)" 
+              placeholder="Series" 
               value={formData.series || ""} 
               onChange={handleChange}
               className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -612,7 +634,7 @@ const financeSecretaries = [
               <input
                 type="text"
                 name="muleDescription"
-                placeholder="Mule Description (e.g., mismatched dies)"
+                placeholder="Mule Description"
                 value={formData.muleDescription}
                 onChange={handleChange}
                 className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -972,7 +994,7 @@ const financeSecretaries = [
                 className="w-7 h-7 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
               />
               <label htmlFor="canBeSold" className="text-sm font-medium text-gray-800 ml-3">
-                Can be Sold
+                For Sale
               </label>
             </div>
           </div>
@@ -999,7 +1021,7 @@ const financeSecretaries = [
                 <div className="mt-3">
                   <textarea
                     name="rareReason"
-                    placeholder="Why is this item rare? (e.g., printing error, low mintage, rare signature, limited edition)"
+                    placeholder="Reason for Rarity"
                     value={formData.rareReason}
                     onChange={handleChange}
                     rows="3"
@@ -1161,7 +1183,7 @@ const financeSecretaries = [
                   ${formData.canBeSold 
                     ? 'bg-green-100 text-green-800 border border-green-300' 
                     : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
-                  {formData.canBeSold ?"📚 Collection": "🛒 Sale List" }
+                  {formData.canBeSold ? "🛒 Sale List" : "📚 Collection" }
                 </span>
                 ?
               </p>
