@@ -19,6 +19,11 @@ export default function InventoryForm() {
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [galleryImages, setGalleryImages] = useState([]);
+  const [scannerReady, setScannerReady] = useState(false);
+  const [DWObject, setDWObject] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedImages, setScannedImages] = useState([]);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
 
   const [formData, setFormData] = useState({
@@ -164,6 +169,103 @@ const financeSecretaries = [
   useEffect(() => {
     fetchRecentItems();
   }, []);
+
+  useEffect(() => {
+  // Initialize Dynamic Web TWAIN
+    if (window.Dynamsoft && window.Dynamsoft.DWT) {
+      window.Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', () => {
+        const dwt = window.Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
+        if (dwt) {
+          setDWObject(dwt);
+          setScannerReady(true);
+        }
+      });
+      
+      window.Dynamsoft.DWT.Load();
+    }
+  }, []);
+
+  const selectScanner = () => {
+  if (DWObject) {
+    DWObject.SelectSource(() => {
+      console.log('Scanner selected successfully');
+    }, (errorCode, errorString) => {
+      alert('Scanner selection failed: ' + errorString);
+    });
+  }
+};
+
+  const scanDocument = () => {
+    if (!DWObject) return;
+    
+  setIsScanning(true);
+    DWObject.AcquireImage(
+      () => {
+        console.log('Scan successful');
+        setIsScanning(false);
+        // Convert scanned images to files
+        convertScannedToFiles();
+      },
+      (errorCode, errorString) => {
+        alert('Scan failed: ' + errorString);
+        setIsScanning(false);
+      }
+    );
+  };
+
+  const convertScannedToFiles = () => {
+    if (!DWObject || DWObject.HowManyImagesInBuffer === 0) return;
+  
+  const newScannedImages = [];
+    for (let i = 0; i < DWObject.HowManyImagesInBuffer; i++) {
+      DWObject.ConvertToBlob(
+        [i],
+        window.Dynamsoft.DWT.EnumDWT_ImageType.IT_JPG,
+        (result, indices, type) => {
+          const file = new File([result], `scanned_${Date.now()}_${i}.jpg`, { type: 'image/jpeg' });
+          newScannedImages.push(file);
+          
+          if (newScannedImages.length === DWObject.HowManyImagesInBuffer) {
+            setScannedImages(newScannedImages);
+          }
+        },
+        (errorCode, errorString) => {
+          console.error('Convert to blob failed:', errorString);
+        }
+      );
+    }
+  };
+
+  const addScannedToForm = () => {
+    if (scannedImages.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        photo: [...prev.photo, ...scannedImages]
+      }));
+      setScannedImages([]);
+      setShowScannerModal(false);
+      // Clear DWObject buffer
+      if (DWObject) {
+        DWObject.RemoveAllImages();
+      }
+    }
+  };
+
+  const retryLastScan = () => {
+    if (DWObject) {
+      DWObject.RemoveAllImages();
+      setScannedImages([]);
+      scanDocument();
+    }
+  };
+
+  const cropScannedImage = (index) => {
+    if (DWObject && index < DWObject.HowManyImagesInBuffer) {
+      DWObject.SelectImages([index]);
+      // Show built-in image editor
+      DWObject.ShowImageEditor();
+    }
+  };
 
   const normalize = (str) =>
     str
@@ -365,31 +467,28 @@ const financeSecretaries = [
 
   // Pre-Independence Indian Form
   const renderPreIndependenceForm = () => (
-  <div className="space-y-6">
-    <SectionHeader 
-      icon="🏛️" 
-      title="Colonial Period Details" 
-      description="Details for pre-1947 Indian currency"
-    />
+    <div className="space-y-6">
+      <SectionHeader 
+        icon="🏛️" 
+        title="Colonial Period Details" 
+        description="Details for pre-1947 Indian currency"
+      />
+      
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
+        <select 
+          onChange={(e) => setRulerType(e.target.value)} 
+          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" 
+          value={rulerType}
+        >
+          <option value="British">British Colonial</option>
+          <option value="Portuguese">Portuguese Colonial</option>
+          <option value="Kingdom/Samrajya">Indian Kingdom/Samrajya</option>
+        </select>
+      </div>
 
-    {/* Ruling Authority */}
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
-      <select 
-        onChange={(e) => setRulerType(e.target.value)} 
-        value={rulerType}
-        className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-      >
-        <option value="British">British Colonial</option>
-        <option value="Portuguese">Portuguese Colonial</option>
-        <option value="Kingdom/Samrajya">Indian Kingdom/Samrajya</option>
-      </select>
-    </div>
-
-    {/* Ruler and Metal */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Ruler Name *</label>
+      {/* Ruler and (conditionally) Metal */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
           name="ruler" 
@@ -399,10 +498,8 @@ const financeSecretaries = [
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           required
         />
-      </div>
-      {type === "Coin" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Metal Composition</label>
+        
+        {type === "Coin" && (
           <input 
             type="text" 
             name="metal" 
@@ -411,41 +508,33 @@ const financeSecretaries = [
             onChange={handleChange} 
             className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           />
+        )}
+      </div>
+
+      {/* Coin-only: Coin Value + Weight */}
+      {type === "Coin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <input 
+            type="text" 
+            name="coinValue" 
+            placeholder="Coin Value" 
+            value={formData.coinValue} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+          <input 
+            type="text" 
+            name="weight" 
+            placeholder="Weight (grams)" 
+            value={formData.weight} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
         </div>
       )}
-    </div>
 
-    {/* Coin-specific: Weight */}
-    {type === "Coin" && (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Weight (grams)</label>
-        <input 
-          type="text" 
-          name="weight" 
-          placeholder="Weight" 
-          value={formData.weight} 
-          onChange={handleChange} 
-          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-        />
-      </div>
-    )}
-
-    {/* Denomination and Year */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Denomination</label>
-        <input 
-          type="text" 
-          name="denomination" 
-          placeholder="Denomination" 
-          value={formData.denomination} 
-          onChange={handleChange} 
-          className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Year *</label>
+      {/* Always show: Year, Script, Rule Duration */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
           name="year" 
@@ -455,24 +544,17 @@ const financeSecretaries = [
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           required
         />
-      </div>
-    </div>
-
-    {/* Script and Rule Duration */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Script/Language</label>
         <input 
           type="text" 
           name="script" 
-          placeholder="Script/Lekhi/Language" 
+          placeholder="Script/Language" 
           value={formData.script} 
           onChange={handleChange} 
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
       </div>
+
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Rule Duration</label>
         <input 
           type="text" 
           name="ruleDuration" 
@@ -483,9 +565,7 @@ const financeSecretaries = [
         />
       </div>
     </div>
-  </div>
-);
-
+  );
 
 
   // Post-Independence Indian Form
@@ -499,11 +579,11 @@ const financeSecretaries = [
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Denomination</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Denomination *</label>
           <input 
             type="text" 
             name="denomination" 
-            placeholder="Denomination" 
+            placeholder="Enter denomination" 
             value={formData.denomination} 
             onChange={handleChange} 
             className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -573,7 +653,7 @@ const financeSecretaries = [
             <input 
               type="text" 
               name="series" 
-              placeholder="Series" 
+              placeholder="Series (e.g., L66, R23)" 
               value={formData.series || ""} 
               onChange={handleChange}
               className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -634,7 +714,7 @@ const financeSecretaries = [
               <input
                 type="text"
                 name="muleDescription"
-                placeholder="Mule Description"
+                placeholder="Mule Description (e.g., mismatched dies)"
                 value={formData.muleDescription}
                 onChange={handleChange}
                 className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -820,6 +900,7 @@ const financeSecretaries = [
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
+          <div id="dwtcontrolContainer" style={{ width: '100%', height: '500px' }} hidden></div>
           <h1 className="text-gray-600 mb-4">|| Narayan Narayan ||</h1>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">🪙 Numismatic Collection Manager</h1>
           <p className="text-gray-600"> ~ Manish Agrawal</p>
@@ -994,7 +1075,7 @@ const financeSecretaries = [
                 className="w-7 h-7 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
               />
               <label htmlFor="canBeSold" className="text-sm font-medium text-gray-800 ml-3">
-                For Sale
+                Can be Sold
               </label>
             </div>
           </div>
@@ -1021,7 +1102,7 @@ const financeSecretaries = [
                 <div className="mt-3">
                   <textarea
                     name="rareReason"
-                    placeholder="Reason for Rarity"
+                    placeholder="Why is this item rare? (e.g., printing error, low mintage, rare signature, limited edition)"
                     value={formData.rareReason}
                     onChange={handleChange}
                     rows="3"
@@ -1038,30 +1119,51 @@ const financeSecretaries = [
             <SectionHeader 
               icon="📸" 
               title="Photo Upload" 
-              description="Upload clear photos of both sides of the item"
+              description="Upload photos or scan directly from your scanner"
             />
             
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
-                <input
-                  type="file"
-                  name="photo"
-                  multiple
-                  accept="image/*"
-                  onChange={handleChange}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <label htmlFor="photo-upload" className="cursor-pointer">
-                  <div className="text-gray-600">
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    📱 Click to upload photos or drag and drop
-                    <p className="text-sm text-gray-500 mt-2">PNG, JPG, JPEG up to 10MB each</p>
+              {/* Upload/Scanner Options */}
+              <div className="flex gap-4 mb-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200 flex-1">
+                  <input
+                    type="file"
+                    name="photo"
+                    multiple
+                    accept="image/*"
+                    onChange={handleChange}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label htmlFor="photo-upload" className="cursor-pointer">
+                    <div className="text-gray-600">
+                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      📱 Upload from Device
+                      <p className="text-sm text-gray-500 mt-2">PNG, JPG, JPEG up to 10MB each</p>
+                    </div>
+                  </label>
+                </div>
+                
+                {scannerReady && (
+                  <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors duration-200 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowScannerModal(true)}
+                      className="w-full h-full flex flex-col items-center justify-center text-blue-600 hover:text-blue-700"
+                    >
+                      <svg className="h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      🖨️ Scan from Scanner
+                      <p className="text-sm text-blue-500 mt-2">Use connected scanner/printer</p>
+                    </button>
                   </div>
-                </label>
+                )}
               </div>
+
+              {/* Rest of your existing photo display code... */}
 
               {formData.photo.length > 0 && (
                 <div>
@@ -1183,7 +1285,7 @@ const financeSecretaries = [
                   ${formData.canBeSold 
                     ? 'bg-green-100 text-green-800 border border-green-300' 
                     : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
-                  {formData.canBeSold ? "🛒 Sale List" : "📚 Collection" }
+                  {formData.canBeSold ?"🛒 Sale List":"📚 Collection" }
                 </span>
                 ?
               </p>
@@ -1446,6 +1548,102 @@ const financeSecretaries = [
           </div>
         </div>
       )}
+      {/* Scanner Modal */}
+{showScannerModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <h3 className="text-2xl font-bold text-gray-900">🖨️ Scanner Interface</h3>
+        <button
+          onClick={() => setShowScannerModal(false)}
+          className="text-gray-400 hover:text-gray-600 text-2xl"
+        >
+          ×
+        </button>
+      </div>
+      
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Scanner Controls */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold text-gray-800">Scanner Controls</h4>
+            
+            <div className="space-y-3">
+              <button
+                onClick={selectScanner}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isScanning}
+              >
+                🔍 Select Scanner
+              </button>
+              
+              <button
+                onClick={scanDocument}
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                disabled={isScanning || !scannerReady}
+              >
+                {isScanning ? '📄 Scanning...' : '📄 Scan Document'}
+              </button>
+              
+              {scannedImages.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={retryLastScan}
+                    className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors"
+                  >
+                    🔄 Retry Scan
+                  </button>
+                  <button
+                    onClick={addScannedToForm}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    ✅ Add to Form
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Hidden container for Dynamic Web TWAIN */}
+            <div id="dwtcontrolContainer" style={{ width: '0px', height: '0px', display: 'none' }}></div>
+          </div>
+          
+          {/* Scanned Images Preview */}
+          <div>
+            <h4 className="text-lg font-semibold text-gray-800 mb-4">Scanned Images Preview</h4>
+            {scannedImages.length > 0 ? (
+              <div className="space-y-4">
+                {scannedImages.map((image, index) => (
+                  <div key={index} className="border border-gray-300 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Image {index + 1}</span>
+                      <button
+                        onClick={() => cropScannedImage(index)}
+                        className="text-blue-600 hover:text-blue-700 text-sm"
+                      >
+                        ✂️ Crop/Edit
+                      </button>
+                    </div>
+                    <img
+                      src={URL.createObjectURL(image)}
+                      alt={`Scanned ${index + 1}`}
+                      className="w-full h-48 object-contain bg-gray-50 rounded"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-12">
+                <div className="text-4xl mb-4">📄</div>
+                <p>No scanned images yet</p>
+                <p className="text-sm">Use the scanner controls to scan documents</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
