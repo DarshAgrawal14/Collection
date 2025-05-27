@@ -24,6 +24,9 @@ export default function InventoryForm() {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedImages, setScannedImages] = useState([]);
   const [showScannerModal, setShowScannerModal] = useState(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
+  const [itemToUpdate, setItemToUpdate] = useState(null);
+
 
 
   const [formData, setFormData] = useState({
@@ -60,6 +63,8 @@ export default function InventoryForm() {
     acquisitionType: "bought",
     canBeSold: false,
     boughtFrom: "",
+    photo: [],
+    deletedPhotos: [],
     exchangeRate: ""
   });
 
@@ -139,6 +144,29 @@ const financeSecretaries = [
   "Montek Singh Ahluwalia (1991-94)"
 ];
 
+
+  const resetForm = () => {
+    setFormData({
+      currency: "", country: "", denomination: "", year: "", mint: "",
+      commemorativeNameFor: "", commemorativeRange: "", issuer: "", material: "",
+      metal: "", script: "", ruler: "", ruleDuration: "", coinValue: "", weight: "",
+      series: "", condition: "", notes: "", purchaseValue: "", currentValue: "",
+      acquisitionType: "bought", boughtFrom: "", exchangeRate: "", isRare: false,
+      rareReason: "", isMule: false, muleDescription: "", number: "", noteType: "",
+      quantity: 1, canBeSold: false, inset: "", deletedPhotos: [],
+photo: []
+    });
+    setType("Note");
+    setRegion("India");
+    setAfter1947(true);
+    setRulerType("British");
+    setIsCommemorative(false);
+    setIsUpdateMode(false);
+    setItemToUpdate(null);
+    setIssuerSearch("");
+  };
+
+
   // Fetch recent items from database
   const fetchRecentItems = async () => {
     try {
@@ -165,6 +193,57 @@ const financeSecretaries = [
       setLoading(false);
     }
   };
+
+  const populateFormForUpdate = (item) => {
+    setFormData({
+      currency: item.currency || '',
+      country: item.country || '',
+      denomination: item.denomination || '',
+      year: item.year || '',
+      mint: item.mint || '',
+      commemorativeNameFor: item.commemorativeNameFor || '',
+      commemorativeRange: item.commemorativeRange || '',
+      issuer: item.issuer || '',
+      material: item.material || '',
+      metal: item.metal || '',
+      script: item.script || '',
+      ruler: item.ruler || '',
+      ruleDuration: item.ruleDuration || '',
+      coinValue: item.coinValue || '',
+      weight: item.weight || '',
+      series: item.series || '',
+      condition: item.condition || '',
+      notes: item.notes || '',
+      purchaseValue: item.purchaseValue || '',
+      currentValue: item.currentValue || '',
+      acquisitionType: item.acquisitionType || 'bought',
+      boughtFrom: item.boughtFrom || '',
+      exchangeRate: item.exchangeRate || '',
+      isRare: item.isRare || false,
+      rareReason: item.rareReason || '',
+      isMule: item.isMule || false,
+      muleDescription: item.muleDescription || '',
+      number: item.number || '',
+      noteType: item.noteType || '',
+      quantity: item.quantity || 1,
+      canBeSold: item.canBeSold || false,
+      inset: item.inset || '',
+      photo: Array.isArray(item.photos) ? item.photos : [],
+      deletedPhotos: []
+    });
+
+
+    setType(item.type || 'Note');
+    setRegion(item.region || 'India');
+    setAfter1947(item.after1947 ?? true);
+    setRulerType(item.rulerType || 'British');
+    setIsCommemorative(item.isCommemorative || false);
+
+    setIsUpdateMode(true);
+    setItemToUpdate(item);
+    setIssuerSearch(item.issuer || '');
+  };
+
 
   useEffect(() => {
     fetchRecentItems();
@@ -320,11 +399,24 @@ const financeSecretaries = [
   }, [showImageGallery, galleryImages.length]);
 
   const removePhoto = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      photo: prev.photo.filter((_, i) => i !== index),
-    }));
+    const photoToRemove = formData.photo[index];
+
+    // If it's an existing photo (has _id or filename), track it for deletion
+    if (photoToRemove._id || photoToRemove.filename) {
+      setFormData((prev) => ({
+        ...prev,
+        deletedPhotos: [...prev.deletedPhotos, photoToRemove._id?.toString() || photoToRemove.filename],
+        photo: prev.photo.filter((_, i) => i !== index),
+      }));
+    } else {
+      // Just remove it if it's a new file (File object)
+      setFormData((prev) => ({
+        ...prev,
+        photo: prev.photo.filter((_, i) => i !== index),
+      }));
+    }
   };
+
 
   const handleIssuerChange = (e) => {
     setIssuerSearch(e.target.value);
@@ -793,84 +885,62 @@ const financeSecretaries = [
   };
 
   const confirmSubmit = async () => {
-    setShowConfirmDialog(false);
-    setSubmitting(true);
+  setShowConfirmDialog(false);
+  setSubmitting(true);
 
-    const itemData = {
-      ...formData,
-      type,
-      region,
-      after1947,
-      rulerType,
-      isCommemorative,
-    };
+  const itemData = {
+    ...formData,
+    type,
+    region,
+    after1947,
+    rulerType,
+    isCommemorative,
+  };
 
-    const formDataToSend = new FormData();
+  const formDataToSend = new FormData();
 
-    formData.photo.forEach((file) => {
-      formDataToSend.append("photos", file);
-    });
+  if (formData.photo && formData.photo.length > 0) {
+      formData.photo.forEach((file) => {
+        formDataToSend.append("photos", file);
+      });
+    }
+
+      if (formData.deletedPhotos && formData.deletedPhotos.length > 0) {
+    itemData.deletedPhotos = formData.deletedPhotos;
+  }
+
 
     formDataToSend.append("metadata", JSON.stringify(itemData));
-    console.log(formDataToSend.get("metadata"));
 
     try {
-      const res = await axios.post("http://localhost:5000/api/collection", formDataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      let res;
+      if (isUpdateMode && itemToUpdate && itemToUpdate._id) {
+        res = await axios.put(
+          `http://localhost:5000/api/collection/${itemToUpdate._id}`,
+          formDataToSend,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+      } else {
+        res = await axios.post(
+          "http://localhost:5000/api/collection",
+          formDataToSend,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+      }
 
       if (res.status === 200 || res.status === 201) {
-        alert("✅ Item added to collection successfully!");
-        
+        alert(`✅ Item ${isUpdateMode ? "updated" : "added"} successfully!`);
         await fetchRecentItems();
-        
-        // Reset form
-        setFormData({
-          currency: "",
-          country: "",
-          denomination: "",
-          year: "",
-          mint: "",
-          commemorativeNameFor: "",
-          commemorativeRange: "",
-          issuer: "",
-          material: "",
-          metal: "",
-          script: "",
-          ruleDuration: "",
-          coinValue: "",
-          weight: "",
-          series: "",
-          condition: "",
-          notes: "",
-          number: "",
-          noteType: "",
-          quantity: "1",
-          photo: [],
-          thumbnailIndex: 0,
-          purchaseValue: "",
-          currentValue: "",
-          acquisitionType: "bought",
-          boughtFrom: "",
-          exchangeRate: "",
-          canBeSold: false,        
-          isRare: false,
-          rareReason: "",
-          isMule: false,
-          muleDescription: ""
-        });
-
+        resetForm();
       }
     } catch (err) {
       console.error("Error submitting to backend:", err);
-      alert("❌ Something went wrong while saving to backend.");
+      alert(`❌ Failed to ${isUpdateMode ? "update" : "save"} item.`);
     } finally {
-      setIssuerSearch("");
       setSubmitting(false);
     }
   };
+
 
   const getImageUrl = (photo) => {
     if (!photo) return "";
@@ -1195,12 +1265,25 @@ const financeSecretaries = [
           </div>
 
           <button 
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-          >
-            {submitting ? "Adding to Collection..." : "➕ Add to Collection"}
-          </button>
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+            >
+              {submitting
+                ? (isUpdateMode ? "Updating..." : "Adding to Collection...")
+                : (isUpdateMode ? "✅ Update Item" : "➕ Add to Collection")}
+            </button>
+
+            {isUpdateMode && (
+              <button 
+                type="button"
+                onClick={resetForm}
+                className="w-full mt-2 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+              >
+                Cancel Update
+              </button>
+            )}
+
         </form>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
@@ -1265,6 +1348,7 @@ const financeSecretaries = [
                       </div>
                     )}
                   </div>
+                  
                 </div>
               ))}
             </div>
@@ -1541,6 +1625,16 @@ const financeSecretaries = [
     </div>
   </div>
 )}
+<button
+  onClick={() => {
+    populateFormForUpdate(selectedItem);
+    setShowDialog(false); // close modal after clicking
+  }}
+  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+>
+  ✏️ Update
+</button>
+
                   </div>
                 </div>
               </div>
