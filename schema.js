@@ -22,6 +22,11 @@ const CollectionItemSchema = new mongoose.Schema({
     type: String,
     enum: ['British', 'Portuguese', 'Kingdom/Samrajya', ''],
   },
+  kingdomName: {
+  type: String,
+  default: ""
+},
+
   isCommemorative: {
     type: Boolean,
     default: false
