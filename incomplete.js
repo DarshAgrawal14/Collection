@@ -26,7 +26,9 @@ export default function InventoryForm() {
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [isUpdateMode, setIsUpdateMode] = useState(false);
   const [itemToUpdate, setItemToUpdate] = useState(null);
-
+  const [sellerSearch, setSellerSearch] = useState("");
+  const [showSellerDropdown, setShowSellerDropdown] = useState(false);
+  const [sellerOptions, setSellerOptions] = useState([]);
 
 
   const [formData, setFormData] = useState({
@@ -47,6 +49,7 @@ export default function InventoryForm() {
     metal: "",
     script: "",
     ruler: "",
+    kingdomName: "",
     ruleDuration: "",
     coinValue: "",
     weight: "",
@@ -63,11 +66,15 @@ export default function InventoryForm() {
     acquisitionType: "bought",
     canBeSold: false,
     boughtFrom: "",
-    photo: [],
     deletedPhotos: [],
     exchangeRate: ""
   });
 
+  const normalize = (str) =>
+    str
+      .toLowerCase()
+      .replace(/[\W_]+/g, '')
+      .trim();
   const rbiGovernors = [
     "C. D. Deshmukh (11 Aug 1943 – 30 Jun 1949)",
     "Benegal Rama Rau (1 Jul 1949 – 14 Jan 1957)",
@@ -149,7 +156,7 @@ const financeSecretaries = [
     setFormData({
       currency: "", country: "", denomination: "", year: "", mint: "",
       commemorativeNameFor: "", commemorativeRange: "", issuer: "", material: "",
-      metal: "", script: "", ruler: "", ruleDuration: "", coinValue: "", weight: "",
+      metal: "", script: "", ruler: "", ruleDuration: "", kingdomName: "",coinValue: "", weight: "",
       series: "", condition: "", notes: "", purchaseValue: "", currentValue: "",
       acquisitionType: "bought", boughtFrom: "", exchangeRate: "", isRare: false,
       rareReason: "", isMule: false, muleDescription: "", number: "", noteType: "",
@@ -208,6 +215,7 @@ photo: []
       metal: item.metal || '',
       script: item.script || '',
       ruler: item.ruler || '',
+      kingdomName: item.kingdomName || "",
       ruleDuration: item.ruleDuration || '',
       coinValue: item.coinValue || '',
       weight: item.weight || '',
@@ -247,7 +255,15 @@ photo: []
 
   useEffect(() => {
     fetchRecentItems();
-  }, []);
+      }, []);
+
+      useEffect(() => {
+      const storedSellers = JSON.parse(localStorage.getItem("sellerOptions")) || [
+        "Gupta Coins (AGC)", "Coin Bazaar", "Amazon", "Flipkart", "Local Shop"
+      ];
+      setSellerOptions(storedSellers);
+    }, []);
+
 
   useEffect(() => {
   // Initialize Dynamic Web TWAIN
@@ -263,6 +279,11 @@ photo: []
       window.Dynamsoft.DWT.Load();
     }
   }, []);
+
+  const filteredSellers = sellerOptions.filter(seller =>
+    normalize(seller).includes(normalize(sellerSearch))
+  );
+
 
   const selectScanner = () => {
   if (DWObject) {
@@ -346,11 +367,7 @@ photo: []
     }
   };
 
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .replace(/[\W_]+/g, '')
-      .trim();
+  
 
   const filteredSignatories = (
   after1947 && formData.denomination.trim() === "1"
@@ -566,6 +583,7 @@ photo: []
         description="Details for pre-1947 Indian currency"
       />
       
+      {/* Ruling Authority - Full Width */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">Ruling Authority</label>
         <select 
@@ -579,7 +597,7 @@ photo: []
         </select>
       </div>
 
-      {/* Ruler and (conditionally) Metal */}
+      {/* Ruler Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
@@ -591,7 +609,30 @@ photo: []
           required
         />
         
-        {type === "Coin" && (
+        {rulerType === "Kingdom/Samrajya" ? (
+          <input
+            type="text"
+            name="kingdomName"
+            placeholder="Kingdom/Empire"
+            value={formData.kingdomName}
+            onChange={handleChange}
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+        ) : (
+          <input 
+            type="text" 
+            name="ruleDuration" 
+            placeholder="Rule Peroid" 
+            value={formData.ruleDuration} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+        )}
+      </div>
+
+      {/* Coin-specific fields */}
+      {type === "Coin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <input 
             type="text" 
             name="metal" 
@@ -600,32 +641,18 @@ photo: []
             onChange={handleChange} 
             className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           />
-        )}
-      </div>
-
-      {/* Coin-only: Coin Value + Weight */}
-      {type === "Coin" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <input 
             type="text" 
             name="coinValue" 
-            placeholder="Coin Value" 
+            placeholder="Denomination" 
             value={formData.coinValue} 
-            onChange={handleChange} 
-            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
-          <input 
-            type="text" 
-            name="weight" 
-            placeholder="Weight (grams)" 
-            value={formData.weight} 
             onChange={handleChange} 
             className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
           />
         </div>
       )}
 
-      {/* Always show: Year, Script, Rule Duration */}
+      {/* Year and Script - consistent 2-column layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <input 
           type="text" 
@@ -646,19 +673,34 @@ photo: []
         />
       </div>
 
-      <div>
+      {/* Weight for coins only */}
+      {type === "Coin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <input 
+            type="text" 
+            name="weight" 
+            placeholder="Weight (Grams)" 
+            value={formData.weight} 
+            onChange={handleChange} 
+            className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+          <div></div> {/* Empty div for grid balance */}
+        </div>
+      )}
+
+      {/* Rule Duration for Kingdom/Samrajya */}
+      {rulerType === "Kingdom/Samrajya" && (
         <input 
           type="text" 
           name="ruleDuration" 
-          placeholder="Rule Duration" 
+          placeholder="Rule Period" 
           value={formData.ruleDuration} 
           onChange={handleChange} 
           className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
         />
-      </div>
+      )}
     </div>
   );
-
 
   // Post-Independence Indian Form
   const renderPostIndependenceForm = () => (
@@ -1076,7 +1118,7 @@ photo: []
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Value (₹)</label>
                 <input 
-                  type="number" 
+                  type="text" 
                   name="purchaseValue" 
                   placeholder="Purchase Value" 
                   value={formData.purchaseValue} 
@@ -1089,7 +1131,7 @@ photo: []
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Current Value (₹)</label>
                 <input 
-                  type="number" 
+                  type="text" 
                   name="currentValue" 
                   placeholder="Current Value" 
                   value={formData.currentValue} 
@@ -1119,15 +1161,76 @@ photo: []
                   {formData.acquisitionType === "bought" ? "Purchased From" : 
                    formData.acquisitionType === "seen" ? "Seen At" : "Source"}
                 </label>
-                <input 
-                  type="text" 
-                  name="boughtFrom" 
-                  placeholder={formData.acquisitionType === "bought" ? "Shop/Person/Website" : 
-                              formData.acquisitionType === "seen" ? "Exhibition/Friend/Place" : "Source"} 
-                  value={formData.boughtFrom} 
-                  onChange={handleChange} 
-                  className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                />
+                {formData.acquisitionType === "bought" ? (
+  <div>
+    <div className="relative">
+      <input
+        type="text"
+        name="boughtFrom"
+        placeholder="Search or Add Seller"
+        value={sellerSearch}
+        onChange={(e) => {
+          setSellerSearch(e.target.value);
+          setFormData((prev) => ({ ...prev, boughtFrom: e.target.value }));
+        }}
+        onFocus={() => setShowSellerDropdown(true)}
+        onBlur={() => setTimeout(() => setShowSellerDropdown(false), 200)}
+        className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        autoComplete="off"
+      />
+
+      {showSellerDropdown && filteredSellers.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {filteredSellers.map((seller, index) => (
+            <div
+              key={index}
+              className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
+              onMouseDown={() => {
+                setSellerSearch(seller);
+                setFormData((prev) => ({ ...prev, boughtFrom: seller }));
+                setShowSellerDropdown(false);
+              }}
+            >
+              {seller}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* Add Button */}
+    {sellerSearch && !sellerOptions.includes(sellerSearch) && (
+      <button
+        type="button"
+        className="mt-2 text-blue-600 text-sm underline"
+        onClick={() => {
+          const updated = [...sellerOptions, sellerSearch];
+          setSellerOptions(updated);
+          localStorage.setItem("sellerOptions", JSON.stringify(updated));
+          setFormData((prev) => ({ ...prev, boughtFrom: sellerSearch }));
+          setSellerSearch(sellerSearch);
+          setShowSellerDropdown(false);
+        }}
+      >
+        ➕ Add "{sellerSearch}" to Sellers
+      </button>
+    )}
+  </div>
+) : (
+  <input 
+    type="text" 
+    name="boughtFrom" 
+    placeholder={
+      formData.acquisitionType === "seen"
+        ? "Exhibition/Friend/Place"
+        : "Source"
+    } 
+    value={formData.boughtFrom} 
+    onChange={handleChange} 
+    className="w-full h-12 border border-gray-300 rounded-lg px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+  />
+)}
+
               </div>
             </div>
             <div className="mt-4">
@@ -1535,13 +1638,13 @@ photo: []
                         )}
                         {selectedItem.purchaseValue && <p><span className="font-medium">Purchase Value:</span> ₹{selectedItem.purchaseValue}</p>}
                         {selectedItem.currentValue && <p><span className="font-medium">Current Value:</span> ₹{selectedItem.currentValue}</p>}
-                        {selectedItem.purchaseValue && selectedItem.currentValue && (
+                        {/* {selectedItem.purchaseValue && selectedItem.currentValue && (
                           <p className={`font-medium ${parseFloat(selectedItem.currentValue) > parseFloat(selectedItem.purchaseValue) ? 'text-green-600' : parseFloat(selectedItem.currentValue) < parseFloat(selectedItem.purchaseValue) ? 'text-red-600' : 'text-gray-600'}`}>
                             Change: {parseFloat(selectedItem.currentValue) > parseFloat(selectedItem.purchaseValue) ? '+' : ''}
                             ₹{(parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)).toFixed(2)}
                             {' '}({((parseFloat(selectedItem.currentValue) - parseFloat(selectedItem.purchaseValue)) / parseFloat(selectedItem.purchaseValue) * 100).toFixed(1)}%)
                           </p>
-                        )}
+                        )} */}
                         <p className={`font-semibold ${selectedItem.canBeSold ? "text-blue-600" : "text-green-600"}`}>
                           {selectedItem.canBeSold ? "For Sale" : "For Collection"}
                         </p>
