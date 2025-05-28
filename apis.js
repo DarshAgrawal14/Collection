@@ -104,6 +104,7 @@ router.post('/', upload.array('photos', config.MAX_FILES), async (req, res) => {
 });
 
 // PUT update an existing collection item
+// PUT update an existing collection item - FIXED VERSION
 router.put('/:id', upload.array('photos', config.MAX_FILES), async (req, res) => {
   try {
     const metadata = JSON.parse(req.body.metadata);
@@ -113,9 +114,35 @@ router.put('/:id', upload.array('photos', config.MAX_FILES), async (req, res) =>
       return res.status(404).json({ message: 'Item not found' });
     }
     
-    // Process new photos
+    // Start with existing photos
     let photos = [...item.photos];
+    
+    // Handle deleted photos FIRST if specified
+    if (metadata.deletedPhotos && metadata.deletedPhotos.length > 0) {
+      console.log('Deleting photos:', metadata.deletedPhotos);
+      
+      // Delete files from disk
+      for (const photoId of metadata.deletedPhotos) {
+        const photo = item.photos.find(p => p._id.toString() === photoId);
+        if (photo) {
+          console.log('Deleting file:', photo.filename);
+          await fileSystem.deleteFile(photo.filename);
+        }
+      }
+      
+      // Remove deleted photos from the array
+      photos = photos.filter(photo => {
+        const id = photo._id.toString();
+        return !metadata.deletedPhotos.includes(id);
+      });
+      
+      // Clean up metadata
+      delete metadata.deletedPhotos;
+    }
+    
+    // THEN add new photos if any
     if (req.files && req.files.length > 0) {
+      console.log('Adding new photos:', req.files.length);
       const newPhotos = req.files.map(file => ({
         filename: file.filename,
         path: `/${config.UPLOAD_DIR}/${file.filename}`,
@@ -124,20 +151,7 @@ router.put('/:id', upload.array('photos', config.MAX_FILES), async (req, res) =>
       photos = [...photos, ...newPhotos];
     }
     
-    // Handle deleted photos if specified
-    if (metadata.deletedPhotos && metadata.deletedPhotos.length > 0) {
-      // Delete files from disk
-      for (const photoId of metadata.deletedPhotos) {
-        const photo = item.photos.find(p => p._id.toString() === photoId);
-        if (photo) {
-          await fileSystem.deleteFile(photo.filename);
-        }
-      }
-      
-      // Remove from photos array
-      photos = photos.filter(photo => !metadata.deletedPhotos.includes(photo._id.toString()));
-      delete metadata.deletedPhotos;
-    }
+    console.log('Final photos array length:', photos.length);
     
     // Update item
     const updatedItem = await CollectionItem.findByIdAndUpdate(
@@ -148,6 +162,8 @@ router.put('/:id', upload.array('photos', config.MAX_FILES), async (req, res) =>
     
     res.json(updatedItem);
   } catch (err) {
+    console.error('Error updating item:', err);
+    
     // Clean up any uploaded files if there was an error
     if (req.files) {
       req.files.forEach(async (file) => {
@@ -181,7 +197,9 @@ router.delete('/:id', async (req, res) => {
 });
 
 // GET items by filter criteria
-router.post("/api/collection/search", async (req, res) => {
+
+// GET items by filter criteria - FIXED
+router.post("/search", async (req, res) => {  // Changed from "/api/collection/search" to "/search"
   const filters = req.body;
   const query = {};
 
@@ -192,7 +210,7 @@ router.post("/api/collection/search", async (req, res) => {
   }
 
   try {
-    const results = await Collection.find(query).limit(100);
+    const results = await CollectionItem.find(query).limit(100);  // Changed from Collection to CollectionItem
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: "Search failed" });
