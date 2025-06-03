@@ -49,9 +49,10 @@ const performSearch = async () => {
   ...searchFilters,
   type: itemType !== 'all' ? (itemType === 'coins' ? 'Coin' : 'Note') : undefined,
   region: region !== 'all' ? region : undefined,
-  after1947,
-  rulerType: !after1947 ? rulerType : undefined,
+  after1947: region === 'India' ? after1947 : undefined,
+  rulerType: region === 'India' && !after1947 ? rulerType : undefined,
 };
+
 
   // Clean up undefined or empty filters
   Object.keys(filtersToSend).forEach(key => {
